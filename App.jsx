@@ -135,6 +135,59 @@ function risicoWeek(week) {
   return { titel: "Controle", className: "risk ok", tekst: "Goed beheersbaar." };
 }
 
+function belangrijksteTrainingen(week) {
+  return [...week.dagen]
+    .filter(dag => dag.swim.actief || dag.bike.actief || dag.run.actief)
+    .sort((a, b) => dagTotals(b).uren - dagTotals(a).uren)
+    .slice(0, 3);
+}
+
+function ProgrammaOverzicht({ planning }) {
+  return <section className="program-overview" aria-labelledby="programma-title">
+    <div className="program-intro">
+      <p className="eyebrow">Trainingsprogramma</p>
+      <h2 id="programma-title">Van race-specifieke opbouw naar frisse racedag</h2>
+      <p>Gebruik dit overzicht als routekaart: bouw de langste bricks gecontroleerd op, verlaag daarna de belasting in de taper en houd de intensiteit kort en scherp.</p>
+    </div>
+
+    <div className="principles">
+      <div><strong>1. Lange duur</strong><span>Voeding, materiaal en pacing oefenen in de langste fiets- en bricktrainingen.</span></div>
+      <div><strong>2. Herstel bewaken</strong><span>Rustige dagen echt rustig houden en extra herstel nemen bij zware benen of slechte slaap.</span></div>
+      <div><strong>3. Raceklaar taperen</strong><span>Volume omlaag, ritme behouden en geen nieuwe prikkels meer in raceweek.</span></div>
+    </div>
+
+    <div className="program-weeks">
+      {planning.map(week => {
+        const wt = weekTotals(week);
+        const check = risicoWeek(week);
+        return <article className="program-card" key={week.id}>
+          <div className="program-card-head">
+            <div>
+              <span>{week.periode}</span>
+              <h3>{week.naam}: {week.fase}</h3>
+            </div>
+            <b>{urenNaarTekst(wt.uren)}</b>
+          </div>
+          <div className="program-bars" aria-label={`Verdeling ${week.naam}`}>
+            <span style={{ width: `${wt.km ? (wt.swimKm / wt.km) * 100 : 0}%` }} title={`Zwem ${rond(wt.swimKm)} km`} />
+            <span style={{ width: `${wt.km ? (wt.bikeKm / wt.km) * 100 : 0}%` }} title={`Bike ${rond(wt.bikeKm)} km`} />
+            <span style={{ width: `${wt.km ? (wt.runKm / wt.km) * 100 : 0}%` }} title={`Run ${rond(wt.runKm)} km`} />
+          </div>
+          <div className="program-stats">
+            <span>Zwem {rond(wt.swimKm)} km</span>
+            <span>Bike {rond(wt.bikeKm)} km</span>
+            <span>Run {rond(wt.runKm)} km</span>
+            <span className={check.className.replace("risk", "status")}>{check.titel}</span>
+          </div>
+          <ul>
+            {belangrijksteTrainingen(week).map(dag => <li key={dag.id}><b>{dag.dag}</b> · {dag.focus}</li>)}
+          </ul>
+        </article>;
+      })}
+    </div>
+  </section>;
+}
+
 function Slider({ label, value, min, max, step, suffix = "", onChange, display }) {
   return <div className="slider-block">
     <div className="slider-head"><label>{label}</label><span>{display ?? `${value}${suffix}`}</span></div>
@@ -247,8 +300,8 @@ export default function App() {
   return <main className="app">
     <header className="hero">
       <p className="eyebrow">Ironman Hamburg 2026</p>
-      <h1>Dagplanner + interval schuifjes</h1>
-      <p className="intro">iPhone-ready PWA. Pas per dag afstand, uren, zwemtempo, fietswattage, looptempo en intervalblokken aan. Alles wordt automatisch opgeslagen op je toestel.</p>
+      <h1>Triatlon trainingsprogramma</h1>
+      <p className="intro">iPhone-ready PWA voor je Ironman Hamburg voorbereiding. Bekijk de volledige trainingsopbouw, pas per dag afstand, uren, zwemtempo, fietswattage, looptempo en intervalblokken aan en bewaar alles automatisch op je toestel.</p>
       <div className="actions">
         <button onClick={exportCSV} className="btn primary">CSV exporteren</button>
         <button onClick={exportJSON} className="btn">Backup JSON</button>
@@ -267,6 +320,8 @@ export default function App() {
       <div><span>Bike</span><strong>{rond(totalen.bikeKm)} km</strong></div>
       <div><span>Run</span><strong>{rond(totalen.runKm)} km</strong></div>
     </section>
+
+    <ProgrammaOverzicht planning={planning} />
 
     {zichtbarePlanning.map(week => {
       const wt = weekTotals(week), check = risicoWeek(week);
